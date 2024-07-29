@@ -1,0 +1,36 @@
+name: Deploy to Amplify
+
+on:
+  push:
+    branches: [ main ]  # Replace 'main' with your desired branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2  
+
+      - name: Login to AWS ECR
+        uses: aws-actions/aws-ecr-docker-login@v2
+        with:
+          registry-id: ${{ aws-ecr.registry-id }}  # Replace with your ECR registry ID
+
+      - name: Build Docker image
+        run: docker build -t sly-react:latest . 
+
+      - name: Tag the image for ECR
+        run: docker tag my-react-app:latest ${{ aws-ecr.registry-id }}.dkr.ecr.us-west-2.amazonaws.com/my-react-app:latest
+
+      - name: Push the image to ECR
+        run: docker push ${{ aws-ecr.registry-id }}.dkr.ecr.us-west-2.amazonaws.com/my-react-app:latest
+
+      # Clean up Docker images (optional)
+      - name: Clean up Docker images
+        run: docker image prune -f
